@@ -1,10 +1,6 @@
-// Ejemplo de smooth scrolling al hacer clic en los enlaces del menú
-document.querySelectorAll('nav a').forEach(anchor => {
-    anchor.addEventListener('click', function (e) {
-        e.preventDefault();
+const toggleIcon = document.querySelector('.toggle-icon');
 
-        document.querySelector(this.getAttribute('href')).scrollIntoView({
-            behavior: 'smooth'
-        });
-    });
+toggleIcon.addEventListener('click', () => {
+toggleIcon.classList.toggle('bx-sun');
+document.body.classList.toggle('dark-mode');
 });
