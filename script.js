@@ -1,70 +1,93 @@
-// menu icon navbar
-let menuIcon = document.querySelector('#menu-icon');
-let navbar = document.querySelector('.navbar');
+const root = document.documentElement;
+const header = document.querySelector('[data-header]');
+const navigation = document.querySelector('[data-navigation]');
+const menuToggle = document.querySelector('[data-menu-toggle]');
+const themeToggle = document.querySelector('[data-theme-toggle]');
+const navigationLinks = navigation ? Array.from(navigation.querySelectorAll('a')) : [];
+const yearElement = document.querySelector('[data-current-year]');
 
-menuIcon.onclick = () => {
-    menuIcon.classList.toggle('bx-x');
-    navbar.classList.toggle('active');
+const setMenuState = (isOpen) => {
+    if (!navigation || !menuToggle) return;
+
+    navigation.classList.toggle('is-open', isOpen);
+    menuToggle.setAttribute('aria-expanded', String(isOpen));
+    menuToggle.setAttribute('aria-label', isOpen ? 'Cerrar menú' : 'Abrir menú');
 };
-// scroll
-let sections = document.querySelectorAll('section');
-let navLinks = document.querySelectorAll('header nav a');
 
-window.onscroll = () => {
-    sections.forEach(sec => {
-        let top = window.scrollY;
-        let offset = sec.offsetTop - 150;
-        let height = sec.offsetHeight;
-        let id = sec.getAttribute('id');
+const getPreferredTheme = () => {
+    const storedTheme = localStorage.getItem('portfolio-theme');
+    if (storedTheme === 'light' || storedTheme === 'dark') return storedTheme;
 
-        if (top >= offset && top < offset + height) {
-            navLinks.forEach(links => {
-                links.classList.remove('active');
-                document.querySelector('header nav a[href*=' + id + ']').classList.add('active')
-            });
-        };
+    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+};
+
+const setTheme = (theme) => {
+    root.dataset.theme = theme;
+    if (themeToggle) {
+        const isDark = theme === 'dark';
+        themeToggle.setAttribute('aria-pressed', String(isDark));
+        themeToggle.setAttribute('aria-label', isDark ? 'Activar tema claro' : 'Activar tema oscuro');
+    }
+};
+
+setTheme(getPreferredTheme());
+
+if (menuToggle) {
+    menuToggle.addEventListener('click', () => {
+        const isOpen = menuToggle.getAttribute('aria-expanded') !== 'true';
+        setMenuState(isOpen);
+
+        if (isOpen && navigation) {
+            const firstLink = navigation.querySelector('a');
+            firstLink?.focus();
+        }
     });
-    // sticky navbar
-    let header = document.querySelector('.header');
-    header.classList.toggle('sticky', window.scrollY > 100);
-
-    //retirar menu icon
-    menuIcon.classList.remove('bx-x');
-    navbar.classList.remove('active');
 }
 
-// swiper 
-var swiper = new Swiper(".mySwiper", {
-
-    slidesPerView: 1,
-    spaceBetween: 50,
-    loop: true,
-    grabCursor: true,
-    pagination: {
-        el: ".swiper-pagination",
-        clickable: true,
-    },
-    navigation: {
-        nextEl: ".swiper-button-next",
-        prevEl: ".swiper-button-prev",
-    },
+navigationLinks.forEach((link) => {
+    link.addEventListener('click', () => setMenuState(false));
 });
-//dark light
-let darkModeIcon = document.querySelector('#darkMode-icon');
 
-darkModeIcon.onclick = () => {
-    darkModeIcon.classList.toggle('bx-sun');
-    document.body.classList.toggle('dark-mode');
+document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape' && menuToggle?.getAttribute('aria-expanded') === 'true') {
+        setMenuState(false);
+        menuToggle.focus();
+    }
+});
+
+if (themeToggle) {
+    themeToggle.addEventListener('click', () => {
+        const nextTheme = root.dataset.theme === 'dark' ? 'light' : 'dark';
+        setTheme(nextTheme);
+        localStorage.setItem('portfolio-theme', nextTheme);
+    });
+}
+
+const updateHeaderState = () => {
+    header?.classList.toggle('is-scrolled', window.scrollY > 8);
 };
 
-ScrollReveal({
-    reset: true,
-    distance: '80px',
-    duration: 2000,
-    delay: 200    
-});
-    
-ScrollReveal().reveal('.home-content, .heading', { origin: 'top' });
-ScrollReveal().reveal('.home-img img, services-container, .portfolio-box, testimonial-wrapper, .contact form', { origin: 'bottom' });
-ScrollReveal().reveal('.home-content h1, .about-img img', { origin: 'left' });
-ScrollReveal().reveal('.home-content h3, .home-content h3 .about-img img', { origin: 'right' });
+window.addEventListener('scroll', updateHeaderState, { passive: true });
+updateHeaderState();
+
+if ('IntersectionObserver' in window && navigationLinks.length) {
+    const sections = navigationLinks
+        .map((link) => document.querySelector(link.getAttribute('href')))
+        .filter(Boolean);
+
+    const observer = new IntersectionObserver((entries) => {
+        const visibleEntry = entries.find((entry) => entry.isIntersecting);
+        if (!visibleEntry) return;
+
+        navigationLinks.forEach((link) => {
+            const isCurrent = link.getAttribute('href') === `#${visibleEntry.target.id}`;
+            link.toggleAttribute('aria-current', isCurrent);
+        });
+    }, { rootMargin: '-35% 0px -55% 0px', threshold: 0 });
+
+    sections.forEach((section) => observer.observe(section));
+}
+
+if (yearElement) {
+    yearElement.textContent = new Date().getFullYear();
+}
